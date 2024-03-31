@@ -1,4 +1,10 @@
 from fastapi import FastAPI
+from starlette.exceptions import HTTPException as StarletteHTTPException
+from fastapi.exception_handlers import (
+    http_exception_handler,
+    request_validation_exception_handler,
+)
+from fastapi.exceptions import RequestValidationError
 from fastapi.routing import APIRoute
 from starlette.middleware.cors import CORSMiddleware
 
@@ -27,5 +33,18 @@ if settings.BACKEND_CORS_ORIGINS:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+
+# http_exception_handler
+@app.exception_handler(StarletteHTTPException)
+async def custom_http_exception_handler(request, exc):
+    return await http_exception_handler(request, exc)
+
+
+# validation_exception_handler
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, exc):
+    return await request_validation_exception_handler(request, exc)
+
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
