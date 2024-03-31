@@ -14,7 +14,7 @@ class H2ogptAuth:
     load_dotenv()
 
     src = os.getenv("H2OGPT_API_URL")
-   app.h2ogpt.src.h2ogpt.key = os.getenv("H2OGPT_API_KEY")
+    h2ogpt_key = os.getenv("H2OGPT_API_KEY")
     persist = True
     max_workers = os.getenv("H2OGPT_MAX_WORKERS")
     auth = (
@@ -75,5 +75,5 @@ class H2ogptAuth:
 h2ogpt_instance = H2ogptAuth()
 
 
-defapp.h2ogpt.src.h2ogpt.client() -> Client:
-    returnapp.h2ogpt.src.h2ogpt.instance.auth_client()
+def get_client() -> Client:
+    return h2ogpt_instance.auth_client()
