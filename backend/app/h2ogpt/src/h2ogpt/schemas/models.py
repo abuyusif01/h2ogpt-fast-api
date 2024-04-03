@@ -29,20 +29,13 @@ class ChatModel(BaseH2ogptModel):
 
     """
 
-    res: list[dict[str, Any]] = Field(
-        default_factory=lambda: [{"content": None, "sha256": None}]
-    )
+    # res: list[dict[str, Any]] = Field(
+    #     default_factory=lambda: [{"content": None, "sha256": None}]
+    # )
+    res: list[dict[str, Any]] = Field(default_factory=list)
     chat_history: list = Field(default_factory=lambda: [(None, None)])
 
     def __pydantic_post_init__(self):
-        """
-        Initialize a new ChatModel object.
-
-        Args:
-            metadata (dict, optional): The metadata associated with the chat model. Defaults to an empty dictionary.
-            chat_history (list, optional): The chat history stored as a list of tuples. Defaults to [(None, None)].
-
-        """
         super().__init__()
         if self.metadata == {}:  # new chat object
             self.metadata = {

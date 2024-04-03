@@ -4,9 +4,9 @@ from pydantic import BaseModel
 
 class ConverseResponse(BaseModel):
     response: str
-    chatId: str
+    chatId: Optional[str]
     time_taken: float
-    summary: str
+    sources: list | None = None
 
 
 class APIExceptionResponse(BaseModel):
