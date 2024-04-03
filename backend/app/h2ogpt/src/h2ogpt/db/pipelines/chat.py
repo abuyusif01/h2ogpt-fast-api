@@ -1,5 +1,7 @@
+from typing import Optional
 import uuid, os
 
+from app.h2ogpt.src.h2ogpt.db.pipelines.utils.base_pipeline import BasePipeline
 from app.h2ogpt.src.h2ogpt.schemas.request import (
     ChatRequest,
     ChatResponse,
@@ -8,19 +10,32 @@ from app.h2ogpt.src.h2ogpt.schemas.request import (
 )
 from app.h2ogpt.src.h2ogpt.schemas.models import ChatModel, AllChatsModel
 from app.h2ogpt.src.h2ogpt.schemas.response import APIExceptionResponse
-from app.h2ogpt.src.h2ogpt.db.pipelines.utils.cursor import Cursor
 from app.h2ogpt.src.h2ogpt.db.pipelines.utils.paginate import Pagination
 from app.h2ogpt.src.h2ogpt.utils.exceptions import ExceptionHandler, exhandler
 from datetime import datetime
 
 
-class ChatPipeline(Cursor):
+class ChatPipeline(BasePipeline):
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        **kwargs,
+    ) -> None:
         super().__init__()
         self.db = os.getenv("MONGO_DB_H2OGPT_CHATS") or "H2OGPT_CHATS"
+        self.userId = kwargs.get("userId", None)
+        self.chatId = kwargs.get("chatId", None)
 
-    def get_chat(self, chatId: str, userId: str) -> ChatModel | APIExceptionResponse:
+    @property
+    def run(self):
+        return self.get_chat(self.chatId, self.userId)
+
+    @exhandler
+    def get_chat(
+        self,
+        chatId: str,
+        userId: Optional[str],
+    ) -> ChatModel | APIExceptionResponse:
         """Get chat Object given chatId and userId.
 
         Args:
@@ -44,16 +59,14 @@ class ChatPipeline(Cursor):
             return ChatModel(**result[0])
 
         except Exception as e:
-            return APIExceptionResponse(
-                **ExceptionHandler(
-                    exception=e,
-                    msg="Invalid chatId",
-                    solution="Check chatId and try again",
-                ).to_dict()
+            return ExceptionHandler(
+                exception=e,
+                msg="Invalid chatId",
+                solution="Check chatId and try again",
             )
 
     def new_chat(self, req: ChatRequest) -> ChatResponse:
-        """Create a new chat.
+        """Create a new chat.@property
 
         Args:
             req (ChatRequest): The chat request object containing the chat history.
@@ -79,7 +92,7 @@ class ChatPipeline(Cursor):
         )
 
     def update_chat(self, req: ChatRequest) -> ChatResponse:
-        """save new and update chat
+        """if new create and save it or update existing chat
 
         Args:
             chat (dict): chat history
@@ -105,11 +118,10 @@ class ChatPipeline(Cursor):
             msg={"chatId": req.chatId, "msg": "Chat updated successfully"},
         )
 
+    @exhandler
     def get_all_chats_metadata(
-        self,
-        userId: str,
-        paginate: PaginateRequest,
-    ) -> list[AllChatsModel]:
+        self, userId: str, paginate: PaginateRequest
+    ) -> list[AllChatsModel] | APIExceptionResponse:
         """get all user-scope chats metadata
 
         Returns:
@@ -143,10 +155,9 @@ class ChatPipeline(Cursor):
             self.cursor[self.db].delete_one(
                 {"metadata.chatId": req.chatId, "metadata.userId": req.userId}
             )
-            raise Exception("Chat not found") 
-            # return {"msg": "Chat deleted successfully"}
+            # raise Exception("Chat not found")
+            return {"msg": "Chat deleted successfully"}
         except Exception as e:
-
             return ExceptionHandler(
                 exception=e,
                 msg="Failed to delete chat",
