@@ -6,6 +6,7 @@ from app.h2ogpt.src.h2ogpt.schemas.response import ConverseResponse
 from app.h2ogpt.src.h2ogpt.schemas.models import ChatModel
 from app.h2ogpt.src.h2ogpt.db.pipelines.chat import ChatPipeline
 from app.h2ogpt.src.h2ogpt.utils.client import H2ogptAuth
+from app.h2ogpt.src.h2ogpt.utils.exceptions import exhandler
 
 
 class H2ogptConverse(H2ogptAuth, ChatPipeline):
@@ -15,7 +16,6 @@ class H2ogptConverse(H2ogptAuth, ChatPipeline):
 
     def __init__(self, userId: str, chatId: str | None, client: Client) -> None:
         super().__init__()
-        self.res_dir = os.getenv("RES_DIR")
         self.userId = userId
         self.chatId = chatId
         self.client = client
@@ -41,22 +41,10 @@ class H2ogptConverse(H2ogptAuth, ChatPipeline):
             self.chat_conversation, refresh=True
         )
         self.chat.chat_history = db_chat_history
-        contextual_instruction = None
-        if self.chat.res:
-            template = '''
-            """
-            {context}
-            """
-            
-            {question}
-            '''
-            contextual_instruction = template.format(
-                context=[x["content"] for x in self.chat.res],
-                question=req.instruction,
-            )
+        self.start = perf_counter()
 
         kwargs = dict(
-            instruction=contextual_instruction or req.instruction,
+            instruction=req.instruction,
             h2ogpt_key=self.h2ogpt_key,
             chat_conversation=self.chat_conversation,
         )
@@ -86,6 +74,6 @@ class H2ogptConverse(H2ogptAuth, ChatPipeline):
 
         return ConverseResponse(
             response=response,
-            chatId=req.chatId,
+            chatId=self.chat.metadata["chatId"],
             time_taken=self.time_taken,
         )
