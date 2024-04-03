@@ -1,4 +1,5 @@
 from typing import Any
+from app.h2ogpt.src.h2ogpt.utils.exceptions import exhandler
 from gradio_client import Client
 import os, ast
 
@@ -21,7 +22,7 @@ class H2ogptAuth:
         os.getenv("H2OGPT_AUTH_USER"),
         os.getenv("H2OGPT_AUTH_PASS"),
     )
-    langchain_mode = os.getenv("H2OGPT_LANGCHAIN_MODE")
+    langchain_mode = os.getenv("H2OGPT_LANGCHAIN_MODE") or "UserData"
     _client = None
 
     def auth_client(self) -> Client:
@@ -63,17 +64,17 @@ class H2ogptAuth:
                 self.h2ogpt_key,
                 api_name="/refresh_sources",
             )
-            return ast.literal_eval(
-                self.client.predict(
-                    self.langchain_mode,
-                    self.h2ogpt_key,
-                    api_name="/get_sources_api",
-                )
+        return ast.literal_eval(
+            self.client.predict(
+                self.langchain_mode,
+                self.h2ogpt_key,
+                api_name="/get_sources_api",
             )
+        )
 
 
 h2ogpt_instance = H2ogptAuth()
 
 
-def get_client() -> Client:
+def h2ogpt_client() -> Client:
     return h2ogpt_instance.auth_client()

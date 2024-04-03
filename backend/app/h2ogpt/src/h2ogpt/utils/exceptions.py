@@ -24,8 +24,8 @@ class ExceptionHandler(Exception):
     ) -> None:
         super().__init__()
         self.exception = exception
-        self.msg = msg if isinstance(msg, str) else str(msg.__str__())
-        self.func_name = inspect.stack()[2].function    
+        self.msg = msg if isinstance(msg, str) else self.exception.__str__()
+        self.func_name = inspect.stack()[2].function
         self.solution = solution
 
     def __repr__(self) -> dict:
@@ -33,7 +33,11 @@ class ExceptionHandler(Exception):
         exception_name = self.exception.__class__.__name__
         cause = self.msg if verbose != 3 else self.get_cause_details()
         if verbose == 1:
-            return {"msg": self.msg, "error": exception_name, "solution": self.solution}
+            return {
+                "msg": self.msg,
+                "error": exception_name,
+                "solution": self.solution,
+            }
         elif verbose >= 2:
             return {
                 "error": exception_name,
@@ -42,9 +46,7 @@ class ExceptionHandler(Exception):
                 "msg": self.msg,
             }
         else:
-            return {
-                "msg": self.msg,
-            }
+            return {"msg": self.msg}
 
     def get_cause_details(self) -> str:
         frames = inspect.stack()
@@ -58,18 +60,16 @@ class ExceptionHandler(Exception):
                 cls_name = frame.f_globals.get("__name__", "Unknown")
                 return f"{cls_name}.{func_name} raised the exception at line {lineno} in {filename}"
 
-    @staticmethod
-    def raise_exception(exception, msg, cls_name, func_name, solution) -> None:
-        raise ExceptionHandler(exception, msg, cls_name, func_name, solution)
-
 
 def exhandler(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         cls_name = args[0].__class__.__name__
         func_name = func.__name__
-        result = func(*args, **kwargs)
-
+        try:
+            result = func(*args, **kwargs)
+        except Exception as e:
+            return APIExceptionResponse(**ExceptionHandler(e).__repr__())
         if isinstance(result, ExceptionHandler):
             if int(os.getenv("H2OGPT_VERBOSE", 0)) == 3:
                 return APIExceptionResponse(
