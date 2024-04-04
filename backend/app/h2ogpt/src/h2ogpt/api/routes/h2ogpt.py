@@ -32,11 +32,11 @@ async def converse(
             chatId=req.chatId,
             client=client,
         ).converse(req)
-    finally:
         if isinstance(result, APIExceptionResponse):
-            raise HTTPException(status_code=500, detail=result.dict())
-
-    return result
+            raise HTTPException(status_code=400, detail=result.dict())
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=repr(e))
 
 
 @router.post(
@@ -57,9 +57,9 @@ def converse_with_docs(
             userId=user.id,
             client=client,
         ).converse_with_docs(req)
-        print (result)
-    finally:
         if isinstance(result, APIExceptionResponse):
-            raise HTTPException(status_code=500, detail=result.dict())
+            raise HTTPException(status_code=400, detail=result.dict())
 
-    return result
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=repr(e))
