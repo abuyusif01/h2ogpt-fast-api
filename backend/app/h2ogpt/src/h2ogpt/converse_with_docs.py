@@ -42,6 +42,14 @@ class H2ogptConverseWithDocs(H2ogptConverse):
 
 
     test converse and converseWithDocs
+
+    - test the following on server with h2ogpt
+        - upload [done]
+        - doi
+        - pipeline [done]
+        - urls
+        - converse [done]
+        - converseWithDocs [done]
     """
 
     def __init__(
@@ -140,15 +148,19 @@ class H2ogptConverseWithDocs(H2ogptConverse):
 
     @exhandler
     def load_context(self, req: ConverseWithDocsRequest, document_choice: list[str]):
+
+        # If there's no chat res and no document choice, start a new conversation
         if not self.chat.res and len(document_choice) == 0:
             return self.converse(req)
 
+        # If there's no res, return the instruction from the request.
         if not self.chat.res:
             return req.instruction
 
         context = "\n".join(str(x["content"]) for x in self.chat.res)
         template = f'"""\n{context}\n"""\n{req.instruction}'
 
+        # If there's no document choice, but res is there.
         if len(document_choice) == 0:
             return self.converse(
                 H2ogptBaseChatRequest(instruction=template, chatId=req.chatId)
@@ -158,23 +170,6 @@ class H2ogptConverseWithDocs(H2ogptConverse):
 
     def _fname(self, s: str) -> str:
         return f"{s.replace('/', '_')}"
-
-    def converse_with_docs(self, req: ConverseWithDocsRequest) -> dict:
-        document_choice = []
-
-        if req.dois:
-            document_choice.append(self.build_dois(req))
-
-        if req.pipelines:
-            self.build_pipelines(req)
-
-        if req.urls:
-            document_choice.append(self.build_urls(req))
-
-        if req.h2ogpt_path:
-            document_choice.append(*req.h2ogpt_path)
-
-        return self.instruction_send(req, document_choice)
 
     @exhandler
     def instruction_send(
@@ -240,3 +235,20 @@ class H2ogptConverseWithDocs(H2ogptConverse):
             time_taken=self.time_taken,
             sources=sources,
         )
+
+    def converse_with_docs(self, req: ConverseWithDocsRequest) -> dict:
+        document_choice = []
+
+        if req.dois:
+            document_choice.append(self.build_dois(req))
+
+        if req.pipelines:
+            self.build_pipelines(req)
+
+        if req.urls:
+            document_choice.append(self.build_urls(req))
+
+        if req.h2ogpt_path:
+            document_choice.append(*req.h2ogpt_path)
+
+        return self.instruction_send(req, document_choice)

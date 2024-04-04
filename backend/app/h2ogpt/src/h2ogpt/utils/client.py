@@ -25,6 +25,7 @@ class H2ogptAuth:
     langchain_mode = os.getenv("H2OGPT_LANGCHAIN_MODE") or "UserData"
     _client = None
 
+    @exhandler # TODO: Create exhandler for only internal stuff
     def auth_client(self) -> Client:
         """
         Get an instance of authenticated client
