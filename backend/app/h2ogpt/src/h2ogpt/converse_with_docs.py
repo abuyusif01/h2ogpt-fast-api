@@ -3,11 +3,7 @@ from time import perf_counter
 from app.h2ogpt.src.h2ogpt.converse import H2ogptConverse
 from app.h2ogpt.src.h2ogpt.db.pipelines.chat import ChatPipeline
 from app.h2ogpt.src.h2ogpt.schemas.models import ChatModel
-from app.h2ogpt.src.h2ogpt.schemas.request import (
-    ChatRequest,
-    ConverseWithDocsRequest,
-    H2ogptBaseChatRequest,
-)
+from app.h2ogpt.src.h2ogpt.schemas.request import ChatRequest, ConverseWithDocsRequest
 from app.h2ogpt.src.h2ogpt.schemas.response import (
     APIExceptionResponse,
     ConverseResponse,
@@ -156,17 +152,9 @@ class H2ogptConverseWithDocs(H2ogptConverse):
         # If there's no res, return the instruction from the request.
         if not self.chat.res:
             return req.instruction
-
-        context = "\n".join(str(x["content"]) for x in self.chat.res)
-        template = f'"""\n{context}\n"""\n{req.instruction}'
-
-        # If there's no document choice, but res is there.
-        if len(document_choice) == 0:
-            return self.converse(
-                H2ogptBaseChatRequest(instruction=template, chatId=req.chatId)
-            )
-
-        return template
+        else:
+            context = "\n".join(str(x["content"]) for x in self.chat.res)
+            return {"user_paste": self.paste(context), "instruction": req.instruction}
 
     def _fname(self, s: str) -> str:
         return f"{s.replace('/', '_')}"
@@ -191,15 +179,17 @@ class H2ogptConverseWithDocs(H2ogptConverse):
         if isinstance(instruction, ConverseResponse):
             return instruction
 
+        if isinstance(instruction, dict):
+            document_choice.append(instruction["user_paste"])
+            instruction = instruction["instruction"]
+
         kwargs = dict(
             instruction=instruction,
             langchain_mode=self.langchain_mode,
             langchain_action=req.langchain_action,
             stream_output=False,
             h2ogpt_key=self.h2ogpt_key,
-            top_k_docs=len(
-                document_choice
-            ),  # only select doc given in current context. dont jam all the docs
+            top_k_docs=-1,  # -1 entire doc
             document_subset="Relevant",
             document_choice=document_choice,
             chat_conversation=self.chat_conversation,

@@ -1,7 +1,7 @@
 from typing import Any
 from app.h2ogpt.src.h2ogpt.utils.exceptions import exhandler
 from gradio_client import Client
-import os, ast
+import os, ast, yaml, uuid
 
 
 class H2ogptAuth:
@@ -14,18 +14,22 @@ class H2ogptAuth:
 
     load_dotenv()
 
+    chunk = True
+    persist = True
+    _client = None
+    loaders = tuple([None, None, None, None, None, None])
+
     src = os.getenv("H2OGPT_API_URL")
     h2ogpt_key = os.getenv("H2OGPT_API_KEY")
-    persist = True
     max_workers = os.getenv("H2OGPT_MAX_WORKERS")
     auth = (
         os.getenv("H2OGPT_AUTH_USER"),
         os.getenv("H2OGPT_AUTH_PASS"),
     )
-    langchain_mode = os.getenv("H2OGPT_LANGCHAIN_MODE") or "UserData"
-    _client = None
+    langchain_mode = os.getenv("H2OGPT_LANGCHAIN_MODE", "UserData")
+    chunk_size = int(os.getenv("H2OGPT_CHUNK_SIZE", 512))
 
-    @exhandler # TODO: Create exhandler for only internal stuff
+    @exhandler  # TODO: Create exhandler for only internal stuff
     def auth_client(self) -> Client:
         """
         Get an instance of authenticated client
@@ -43,7 +47,8 @@ class H2ogptAuth:
 
         return self._client
 
-    def sources(self, refresh: bool = True) -> Any:
+    @exhandler
+    def sources(self, refresh: bool = True, **kwargs) -> Any:
         """
         Retrieves the sources from H2OGPT.
 
@@ -53,15 +58,18 @@ class H2ogptAuth:
         Returns:
             dict: An ast dictionary containing the sources.
         """
-        self.client = self.auth_client()
+
+        self.loaders = kwargs.get("loaders") if kwargs.get("loaders") else self.loaders
+        self.client = (
+            kwargs.get("client") if kwargs.get("client") else self.auth_client()
+        )
 
         if refresh:
-            loaders = tuple([None, None, None, None, None, None])
             self.client.predict(
                 self.langchain_mode,
-                True,
-                512,
-                *loaders,
+                self.chunk,
+                self.chunk_size,
+                *self.loaders,
                 self.h2ogpt_key,
                 api_name="/refresh_sources",
             )
@@ -72,6 +80,32 @@ class H2ogptAuth:
                 api_name="/get_sources_api",
             )
         )
+
+    @exhandler
+    def paste(self, content: str, **kwargs):
+        """paste text-content to h2ogpt server and return user_paste/<ID>
+        Optional: loaders, client
+        """
+
+        self.loaders = kwargs.get("loaders") if kwargs.get("loaders") else self.loaders
+        self.client = (
+            kwargs.get("client") if kwargs.get("client") else self.auth_client()
+        )
+
+        # this is partial fix, we add uuid. till gradio support on the fly hash checking
+        # need to create issue, when passing list converted to str, server treats it as list
+        
+        res = self.client.predict(
+            yaml.dump(content) + uuid.uuid4().__str__(),
+            self.langchain_mode,
+            self.chunk,
+            self.chunk_size,
+            True,
+            *self.loaders,
+            self.h2ogpt_key,
+            api_name="/add_text",
+        )
+        return f"user_paste/{res[4]}"  # constant index for user_paste/<ID>
 
 
 h2ogpt_instance = H2ogptAuth()

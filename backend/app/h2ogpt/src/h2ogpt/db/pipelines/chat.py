@@ -40,7 +40,7 @@ class ChatPipeline(BasePipeline):
 
         Args:
             chatId (str): The ID of the chat.
-            userId (str): The ID of the user.
+            userId Optional(str): The ID of the user.
 
         Returns:
             ChatModel: An instance of the ChatModel class representing the chat Object.
