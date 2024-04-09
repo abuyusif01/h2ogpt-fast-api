@@ -1,18 +1,19 @@
-import os
-import shutil
-import httpx
-import contextlib
-import threading
-import uuid
+import os, uuid, httpx, contextlib, threading, shutil
+from app.h2ogpt.src.h2ogpt.utils.exceptions import exhandler
 
 
 class HttpxDownloader:
+    """
+    use httpx to donwload file via url, and save it under user_path.
+    """
+
     def __init__(self, base_path=None):
-        self.base_path = base_path or os.getenv("H2OGPT_BASE_PATH") or ""
+        self.base_path = base_path or os.getenv("H2OGPT_BASE_PATH")
         self.session = httpx.Client()
         self.lock = threading.Lock()
 
-    def makedirs(self, path, exist_ok=True, tmp_ok=False):
+    @exhandler
+    def makedirs(self, path, exist_ok=True):
         if path is None:
             return path
 
@@ -29,13 +30,9 @@ class HttpxDownloader:
             os.makedirs(path, exist_ok=exist_ok)
             return path
         except PermissionError:
-            if tmp_ok:
-                path = os.path.join("/tmp/", path)
-                os.makedirs(path, exist_ok=exist_ok)
-                return path
-            else:
-                raise PermissionError("Permission denied")
+            raise PermissionError("Permission denied")
 
+    @exhandler
     def remove(self, path):
         try:
             if path is not None and os.path.exists(path):
@@ -57,6 +54,7 @@ class HttpxDownloader:
                 shutil.move(src, dst)
         self.remove(src)
 
+    @exhandler
     def download_simple(self, url, dest=None, overwrite=False):
         if dest is None:
             dest = os.path.basename(url)
@@ -82,6 +80,7 @@ class HttpxDownloader:
 
         return dest
 
+    @exhandler
     def download_concurrent(self, urls, dests=None, overwrite=False, max_threads=5):
         if not dests:
             dests = [None] * len(urls)
@@ -92,7 +91,7 @@ class HttpxDownloader:
             try:
                 result = self.download_simple(url, dest=dest, overwrite=overwrite)
             except Exception as e:
-                result = f"Error downloading {url}: {str(e)}"
+                result = f"Error downloading {url}: {e.__str__()}"
             results.append(result)
 
         threads = []

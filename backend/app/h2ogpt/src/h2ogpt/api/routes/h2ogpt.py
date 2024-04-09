@@ -59,7 +59,6 @@ def converse_with_docs(
         ).converse_with_docs(req)
         if isinstance(result, APIExceptionResponse):
             raise HTTPException(status_code=400, detail=result.dict())
-
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=repr(e))

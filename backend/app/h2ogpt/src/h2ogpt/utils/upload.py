@@ -61,7 +61,7 @@ class H2ogptDocs(H2ogptAuth):
                 found = False
 
                 # TODO: instead of this looping, lets have a constant naming for /user_path on h2ogpt
-                # we can essentially build h2ogpt_path from the filename and user_id
+                # so we can essentially build h2ogpt_path from the filename and user_id
                 for r in res:
                     if id in r:
                         self.h2ogpt_path = r
@@ -93,6 +93,5 @@ class H2ogptDocs(H2ogptAuth):
         for r in res:
             if userId in r:
                 self.files.append(r)
-        print(self.files)
-        print(type(self.files))
+
         return self.files

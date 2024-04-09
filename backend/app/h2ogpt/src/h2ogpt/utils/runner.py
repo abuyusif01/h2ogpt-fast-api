@@ -1,5 +1,4 @@
 from enum import Enum
-from typing import Any
 from app.h2ogpt.src.h2ogpt.db.pipelines.chat import ChatPipeline
 from app.h2ogpt.src.h2ogpt.db.pipelines.item import ItemPipeline
 
@@ -19,8 +18,7 @@ class PipelineRunner:
         if pipeline_name in self.pipelines:
             self.pipeline = self.pipelines[pipeline_name](**kwargs)
         else:
-            print(self.pipelines)
             raise ValueError(f"Invalid pipeline name: {pipeline_name}")
-
+    
     def run(self):
         return self.pipeline.run
