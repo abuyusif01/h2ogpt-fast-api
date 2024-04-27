@@ -1,0 +1,35 @@
+[tool.poetry]
+name = "h2ogpt-fastAPI"
+description = ""
+version = "0.0.1"
+authors = ["Abubakar Abubakar Yusif <abubakaryusuf951@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.12"
+pymongo = "^4.7.0"
+fastapi = "^0.110.2"
+gradio_client = "^0.15.0"
+httpx = "^0.27.0"
+pydantic = "^2.7.1"
+pydantic_settings = "^2.2.1"
+pytest = "^8.1.2"
+PyYAML = "^6.0.1"
+scidownl = "^1.0.2"
+starlette = "^0.37.2"
+gunicorn = "^21.2.0"
+uvicorn = "^0.29.0"
+python-multipart = "^0.0.9"
+
+
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+
+[tool.pytest.ini_options]
+pythonpath = ["app", "."]
+asyncio_mode = "auto"
+
+[tool.poetry.extras]
