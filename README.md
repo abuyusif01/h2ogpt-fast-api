@@ -75,18 +75,17 @@ Next, go to your browser by visiting http://127.0.0.1:7860 or http://localhost:7
 
 #### Installation
 
-Create a fresh Python 3.12 environment and run the following:
+Create and source a fresh Python 3.12 environment then run the following:
 
 ```bash
 # clone repo
 git clone https://github.com/abuyusif01/h2ogpt-fast-api
-python3.12 -m venv .venv
-source .venv/bin/activate
 
 # install poetry and write lock file
 cd app
 pip install poetry
 poetry install --no-root
+
 # run compose
 docker compose up --build
 ```
