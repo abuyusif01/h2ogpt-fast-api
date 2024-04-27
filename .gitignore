@@ -1,3 +1,4 @@
 .vscode
 .copier
 .env
+*.lock
