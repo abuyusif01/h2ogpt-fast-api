@@ -12,6 +12,7 @@ Extend H2ogpt Gradio-API to RestFul FastAPI.
     - [H2ogpt RestFul API](#h2ogpt-restful-api)
       - [Requirements](#requirements)
       - [Installation - Docker](#installation---docker)
+  - [Todo](#todo)
 
 ## Features
 
@@ -119,4 +120,10 @@ Build docker image, and start app
 docker compose up --remove-orphans --build -d
 ```
 
-Next, go to your browser by visiting http://127.0.0.1:8000/docs
+Next, go to your browser by visiting http://127.0.0.1:8000/docs or http://localhost:8000/docs
+
+## Todo
+
+1. Support streaming
+2. Periodically delete pasted content in user_paste. [gh-issue](https://github.com/h2oai/h2ogpt/issues/1565)
+3. Github pytest workflow
