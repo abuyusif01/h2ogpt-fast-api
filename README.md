@@ -11,7 +11,7 @@ Extend H2ogpt Gradio-API to RestFul FastAPI.
     - [H2ogpt for Local Inference (Limited document Q/A capability)](#h2ogpt-for-local-inference-limited-document-qa-capability)
     - [H2ogpt RestFul API](#h2ogpt-restful-api)
       - [Requirements](#requirements)
-      - [Installation](#installation)
+      - [Installation - Docker](#installation---docker)
 
 ## Features
 
@@ -73,21 +73,50 @@ Next, go to your browser by visiting http://127.0.0.1:7860 or http://localhost:7
 2. Docker [buildx](https://docs.docker.com/reference/cli/docker/buildx/)
 3. poetry
 
-#### Installation
+#### Installation - Docker
 
-Create and source a fresh Python 3.12 environment then run the following:
+Clone repo
 
 ```bash
 # clone repo
 git clone https://github.com/abuyusif01/h2ogpt-fast-api
-cd h2ogpt-fast-api/app
+```
 
-# install poetry and write lock file
-pip install poetry
-poetry install --no-root
+Configure environmental variables for mongodb and h2oapi docker image
 
-# run compose
-docker compose up --build
+```sh
+# Mongodb
+MONGO_USER=root
+MONGO_PASS=pass
+MONGO_CHAT_DB=H2OGPT_CHATS
+MONGO_ITEM_DB=H2OGPT_ITEMS
+MONGO_PORT=27017
+MONGO_HOST=localhost
+
+# h2ogpt
+H2OGPT_API_URL=http://localhost:7860
+H2OGPT_API_KEY=test-api-keys-1234
+H2OGPT_MAX_WORKERS=40
+H2OGPT_AUTH_USER=test
+H2OGPT_AUTH_PASS=test
+H2OGPT_CHUNK_SIZE=512
+H2OGPT_LANGCHAIN_MODE=UserData
+H2OGPT_LANGCHAIN_ACTION=Query
+
+# FastAPI
+PROJECT_NAME=H2OGPT
+DOMAIN=localhost
+ENVIRONMENT=local
+VERBOSE=3
+RES_DIR=/tmp/h2ogpt
+API_V1_PREFIX=/api/v1
+BACKEND_CORS_ORIGINS=http://localhost,https://localhost
+```
+
+Build docker image, and start app
+
+```sh
+docker compose up --remove-orphans --build -d
 ```
 
 Next, go to your browser by visiting http://127.0.0.1:8000/docs
