@@ -60,11 +60,12 @@ RUN --mount=type=cache,target=/root/.cache \
 
 # copy project requirement files here to ensure they will be cached.
 WORKDIR $PYSETUP_PATH
-COPY poetry.lock pyproject.toml ./
+COPY pyproject.toml ./
+
 
 # install runtime deps - uses $POETRY_VIRTUALENVS_IN_PROJECT internally
 RUN --mount=type=cache,target=/root/.cache \
-    poetry install --without=dev
+    poetry install --without=dev --no-root
 
 
 ################################
