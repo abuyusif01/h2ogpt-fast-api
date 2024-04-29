@@ -2,7 +2,12 @@ import os, ast, uuid, asyncio
 from time import perf_counter
 from db.pipelines.chat import ChatPipeline
 from schemas.models import ChatModel
-from schemas.request import ChatRequest, ConverseWithDocsRequest, H2ogptRequest
+from schemas.request import (
+    BaseChatRequest,
+    ChatRequest,
+    ConverseWithDocsRequest,
+    H2ogptRequest,
+)
 from schemas.response import (
     APIExceptionResponse,
     ConverseResponse,
@@ -53,7 +58,7 @@ class H2ogptConverseWithDocs(H2ogptConverse):
         self.client = req.client
 
     @exhandler
-    async def build_dois(self, req: ConverseWithDocsRequest) -> str:
+    def build_dois(self, req: ConverseWithDocsRequest) -> str:
         dois = []
 
         for d in req.dois:
@@ -79,7 +84,7 @@ class H2ogptConverseWithDocs(H2ogptConverse):
         return dois
 
     @exhandler
-    async def build_pipelines(
+    def build_pipelines(
         self, req: ConverseWithDocsRequest
     ) -> dict | APIExceptionResponse:
         result = []
@@ -87,7 +92,7 @@ class H2ogptConverseWithDocs(H2ogptConverse):
         for p in req.pipelines:
             try:
                 result.append(
-                    await PipelineRunner(
+                    PipelineRunner(
                         pipeline_name=PipelineNames[p], **req.model_dump()
                     ).run()
                 )
@@ -107,7 +112,7 @@ class H2ogptConverseWithDocs(H2ogptConverse):
                 )
 
     @exhandler
-    async def build_urls(self, req: ConverseWithDocsRequest) -> dict:
+    def build_urls(self, req: ConverseWithDocsRequest) -> dict:
         urls = []
 
         for u in req.urls:
@@ -133,13 +138,16 @@ class H2ogptConverseWithDocs(H2ogptConverse):
         return urls
 
     @exhandler
-    async def load_context(
-        self, req: ConverseWithDocsRequest, document_choice: list[str]
-    ):
+    def load_context(self, req: ConverseWithDocsRequest, document_choice: list[str]):
 
         # If there's no chat res and no document choice, start a new conversation
         if not self.chat.res and len(document_choice) == 0:
-            return await self.converse(req)
+            return self.converse(
+                BaseChatRequest(
+                    chatId=req.chatId,
+                    instruction=req.instruction,
+                )
+            )
 
         # If there's no res, return the instruction from the request.
         if not self.chat.res:
@@ -152,7 +160,7 @@ class H2ogptConverseWithDocs(H2ogptConverse):
         return f"{s.replace('/', '_')}"
 
     @exhandler
-    async def instruction_send(
+    def instruction_send(
         self, req: ConverseWithDocsRequest, document_choice: list[str]
     ) -> ConverseResponse | APIExceptionResponse:
         """
@@ -163,22 +171,27 @@ class H2ogptConverseWithDocs(H2ogptConverse):
             self.chat = ChatModel()
             self.chat_conversation = []
             req.chatId = uuid.uuid4().hex
-            await self.new_chat(ChatRequest(chat=self.chat, chatId=req.chatId))
+            self.new_chat(ChatRequest(chat=self.chat, chatId=req.chatId))
         else:
-            self.chat = await ChatPipeline().get_chat(self.chatId)
-            self.chat_conversation = await self.chat.h2ogpt_chat_conversation()
+            self.chat = ChatPipeline().get_chat(req.chatId)
+            self.chat_conversation = self.chat.h2ogpt_chat_conversation()
 
-        await self.chat.db_chat_conversation(
+        self.chat.db_chat_conversation(
             chat_conversation=self.chat_conversation,
             refresh=True,
         )
 
-        instruction = await self.load_context(req, document_choice)
+        instruction = self.load_context(req, document_choice)
 
         # if the theres no context and no file given
         # then we will just send the instruction and get the result
         if isinstance(instruction, ConverseResponse):
             return instruction
+
+        if isinstance(instruction, APIExceptionResponse):
+            return APIExceptionResponse(
+                **instruction.dict(),
+            )
 
         if isinstance(instruction, dict):
             document_choice.append(instruction["user_paste"])
@@ -208,12 +221,12 @@ class H2ogptConverseWithDocs(H2ogptConverse):
         sources = ast.literal_eval(res)["sources"]
 
         self.chat_conversation.append((instruction, response))
-        db_chat_history = await self.chat.db_chat_conversation(
+        db_chat_history = self.chat.db_chat_conversation(
             chat_conversation=self.chat_conversation, refresh=True
         )
         self.chat.chat_history = db_chat_history
 
-        await self.update_chat(
+        self.update_chat(
             ChatRequest(
                 chat=self.chat,
                 chatId=req.chatId,
@@ -228,19 +241,19 @@ class H2ogptConverseWithDocs(H2ogptConverse):
         )
 
     @exhandler
-    async def converse_with_docs(self, req: ConverseWithDocsRequest) -> dict:
+    def converse_with_docs(self, req: ConverseWithDocsRequest) -> dict:
         document_choice = []
 
         if req.dois:
-            document_choice.append(await self.build_dois(req))
+            document_choice.append(self.build_dois(req))
 
         if req.pipelines:
-            await self.build_pipelines(req)
+            self.build_pipelines(req)
 
         if req.urls:
-            document_choice.append(await self.build_urls(req))
+            document_choice.append(self.build_urls(req))
 
         if req.h2ogpt_path:
             document_choice.append(*req.h2ogpt_path)
 
-        return await self.instruction_send(req, document_choice)
+        return self.instruction_send(req, document_choice)

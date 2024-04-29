@@ -23,7 +23,7 @@ class H2ogptConverse(H2ogptAuth, ChatPipeline):
             self.chat_conversation = []
 
     @exhandler
-    async def converse(self, req: BaseChatRequest) -> ConverseResponse:
+    def converse(self, req: BaseChatRequest) -> ConverseResponse:
         """
         Perform a conversation with the H2OGPT model.
 
@@ -36,12 +36,12 @@ class H2ogptConverse(H2ogptAuth, ChatPipeline):
 
         if req.chatId is None:
             req.chatId = uuid.uuid4().hex
-            await self.new_chat(ChatRequest(chat=self.chat, chatId=req.chatId))
+            self.new_chat(ChatRequest(chat=self.chat, chatId=req.chatId))
         else:
-            self.chat = await ChatPipeline().get_chat(self.chatId)
-            self.chat_conversation = await self.chat.h2ogpt_chat_conversation()
+            self.chat = ChatPipeline().get_chat(req.chatId)
+            self.chat_conversation = self.chat.h2ogpt_chat_conversation()
 
-        await self.chat.db_chat_conversation(self.chat_conversation, refresh=True)
+        self.chat.db_chat_conversation(self.chat_conversation, refresh=True)
 
         kwargs = dict(
             instruction=req.instruction,
@@ -51,6 +51,7 @@ class H2ogptConverse(H2ogptAuth, ChatPipeline):
 
         # This is a blocking call
         self.start = perf_counter()
+
         res = self.client.predict(
             kwargs,
             api_name="/submit_nochat_api",
@@ -60,12 +61,12 @@ class H2ogptConverse(H2ogptAuth, ChatPipeline):
         response = ast.literal_eval(res)["response"]
         self.chat_conversation.append((req.instruction, response))
 
-        db_chat_history = await self.chat.db_chat_conversation(
+        db_chat_history = self.chat.db_chat_conversation(
             chat_conversation=self.chat_conversation, refresh=True
         )
         self.chat.chat_history = db_chat_history
 
-        await self.update_chat(
+        self.update_chat(
             ChatRequest(
                 chat=self.chat,
                 chatId=req.chatId,

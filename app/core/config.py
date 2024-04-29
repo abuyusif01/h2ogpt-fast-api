@@ -26,11 +26,12 @@ class Settings(BaseSettings):
 
     # App settings
     API_V1_PREFIX: str
-    BACKEND_CORS_ORIGINS: str
+    PROJECT_NAME: str
     DOMAIN: str
     VERBOSE: int
     RES_DIR: str
     ENVIRONMENT: Literal["local", "staging", "production"]
+    BACKEND_CORS_ORIGINS: str
 
     @computed_field  # type: ignore[misc]
     @property
@@ -39,8 +40,6 @@ class Settings(BaseSettings):
         if self.ENVIRONMENT == "local":
             return f"http://{self.DOMAIN}"
         return f"https://{self.DOMAIN}"
-
-    PROJECT_NAME: str
 
     # ChatDB
     MONGO_HOST: str

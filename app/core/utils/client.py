@@ -8,7 +8,7 @@ from core.config import settings
 
 class H2ogptAuth:
     """
-    Instance of H2ogptAuth class will have an auth client to inferenceapp.h2ogpt.src.h2ogpt.model
+    Instance of H2ogptAuth class will have an auth client to inference app h2ogpt
     """
 
     chunk = True
@@ -43,7 +43,7 @@ class H2ogptAuth:
                 return ExceptionHandler(
                     exception=e,
                     msg="H2ogpt Authentication Failed",
-                    solution="Check H2ogpt gradio API and ensure it is runnig",
+                    solution="Check H2ogpt gradio API and ensure it is running",
                 )
 
         return self._client
@@ -116,4 +116,12 @@ h2ogpt_instance = H2ogptAuth()
 
 
 def h2ogpt_client() -> Client:
-    return h2ogpt_instance.auth_client()
+    client = h2ogpt_instance.auth_client()
+    if isinstance(client, APIExceptionResponse):
+        raise ExceptionHandler(
+            exception=client,
+            msg=client.msg,
+            solution=client.solution,
+        )
+
+    return client
