@@ -87,18 +87,19 @@ RUN --mount=type=cache,target=/root/.cache \
 # will become mountpoint of our code
 WORKDIR /app
 
-EXPOSE 8000
-CMD ["uvicorn", "--reload", "main:app"]
-
 
 ################################
 # PRODUCTION
 # Final image used for runtime
 ################################
 FROM python-base as production
+RUN apt-get update \
+    && apt-get install --no-install-recommends -y \
+    # deps for installing poetry
+    curl
+
 ENV FASTAPI_ENV=production
 COPY --from=builder-base $PYSETUP_PATH $PYSETUP_PATH
 COPY . /app
 COPY pyproject.toml /app/pyproject.toml
 WORKDIR /app
-CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "main:app", "--bind", "0.0.0.0", "--workers", "4", "--timeout", "1200"]
