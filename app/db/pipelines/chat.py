@@ -1,5 +1,3 @@
-import uuid
-
 from db.pipelines.utils.base_pipeline import BasePipeline
 from db.pipelines.utils.paginate import Pagination
 from schemas.request import (
@@ -31,12 +29,11 @@ class ChatPipeline(BasePipeline):
         return await self.get_chat(self.chatId)
 
     @exhandler
-    async def get_chat(self, chatId: str) -> ChatModel | APIExceptionResponse:
+    def get_chat(self, chatId: str) -> ChatModel | APIExceptionResponse:
         """Get chat Object given chatId and userId.
 
         Args:
             chatId (str): The ID of the chat.
-            userId Optional(str): The ID of the user.
 
         Returns:
             ChatModel: An instance of the ChatModel class representing the chat Object.
@@ -60,7 +57,7 @@ class ChatPipeline(BasePipeline):
                 solution="Check chatId and try again",
             )
 
-    async def new_chat(self, req: ChatRequest) -> ChatResponse:
+    def new_chat(self, req: ChatRequest) -> ChatResponse:
         """Create a new chat.@property
 
         Args:
@@ -83,7 +80,7 @@ class ChatPipeline(BasePipeline):
             msg={"chatId": req.chatId, "msg": "Chat created successfully"},
         )
 
-    async def update_chat(self, req: ChatRequest) -> ChatResponse:
+    def update_chat(self, req: ChatRequest) -> ChatResponse:
         """if new create and save it or update existing chat
 
         Args:
@@ -109,7 +106,7 @@ class ChatPipeline(BasePipeline):
         )
 
     @exhandler
-    async def get_all_chats_metadata(
+    def get_all_chats_metadata(
         self, paginate: PaginateRequest
     ) -> list[AllChatsModel] | APIExceptionResponse:
         """get all user-scope chats metadata
@@ -137,7 +134,7 @@ class ChatPipeline(BasePipeline):
             raise Exception(f"Failed to retrieve all chats metadata {repr(e)}")
 
     @exhandler
-    async def delete_chat(self, req: DeleteChatRequest) -> dict | ExceptionHandler:
+    def delete_chat(self, req: DeleteChatRequest) -> dict | ExceptionHandler:
         """delete chat given chatId and userId"""
 
         try:
