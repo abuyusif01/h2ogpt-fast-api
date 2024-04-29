@@ -70,8 +70,7 @@ Next, go to your browser by visiting http://127.0.0.1:7860 or http://localhost:7
 
 #### Requirements
 
-1. [Docker compose](https://docs.docker.com/engine/install/ubuntu/)
-2. Docker [buildx](https://docs.docker.com/reference/cli/docker/buildx/)
+1. [Docker](https://docs.docker.com/engine/install/ubuntu/)
 
 #### Installation - Docker
 
