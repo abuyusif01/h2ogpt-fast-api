@@ -70,9 +70,8 @@ Next, go to your browser by visiting http://127.0.0.1:7860 or http://localhost:7
 
 #### Requirements
 
-1. Docker compose
+1. [Docker compose](https://docs.docker.com/engine/install/ubuntu/)
 2. Docker [buildx](https://docs.docker.com/reference/cli/docker/buildx/)
-3. poetry
 
 #### Installation - Docker
 
@@ -120,7 +119,7 @@ Build docker image, and start app
 docker compose up --remove-orphans --build -d
 ```
 
-Next, go to your browser by visiting http://127.0.0.1:8000/docs or http://localhost:8000/docs
+Next, go to your browser by visiting http://127.0.0.1:8000/docs or http://localhost:8000/docs (Swagger UI)
 
 ## Todo
 
