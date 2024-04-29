@@ -29,11 +29,8 @@ class ChatModel(BaseH2ogptModel):
 
     """
 
-    # res: list[dict[str, Any]] = Field(
-    #     default_factory=lambda: [{"content": None, "sha256": None}]
-    # )
     res: list[dict[str, Any]] = Field(default_factory=list)
-    chat_history: list = Field(default_factory=lambda: [(None, None)])
+    chat_history: list = Field(default_factory=list)
 
     def __pydantic_post_init__(self):
         super().__init__()
@@ -43,7 +40,7 @@ class ChatModel(BaseH2ogptModel):
                 "lastUpdated": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             }
 
-    async def h2ogpt_chat_conversation(self):
+    def h2ogpt_chat_conversation(self):
         """
         Convert the chat history to H2OGPT chat conversation type.
 
@@ -69,7 +66,7 @@ class ChatModel(BaseH2ogptModel):
 
         return history
 
-    async def db_chat_conversation(
+    def db_chat_conversation(
         self,
         chat_conversation: list[tuple[str, str]],
         refresh: bool = False,
