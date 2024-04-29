@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.exception_handlers import (
     http_exception_handler,
@@ -9,6 +10,7 @@ from fastapi.routing import APIRoute
 from starlette.middleware.cors import CORSMiddleware
 
 from api.main import api_router
+from core.utils.exceptions import ExceptionHandler
 from core.config import settings
 
 
@@ -45,6 +47,12 @@ async def custom_http_exception_handler(request, exc):
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request, exc):
     return await request_validation_exception_handler(request, exc)
+
+
+# internal exception handler
+@app.exception_handler(ExceptionHandler)
+async def custom_http_exception_handler(_, exc):
+    return JSONResponse(status_code=500, content=exc.__repr__())
 
 
 app.include_router(api_router, prefix=settings.API_V1_PREFIX)
