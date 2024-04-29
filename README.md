@@ -127,3 +127,4 @@ Next, go to your browser by visiting http://127.0.0.1:8000/docs or http://localh
 1. Support streaming
 2. Periodically delete pasted content in user_paste. [gh-issue](https://github.com/h2oai/h2ogpt/issues/1565)
 3. Github pytest workflow
+4. Allow users to supply h2ogpt_key

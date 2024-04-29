@@ -31,6 +31,7 @@ services:
     build:
       context: ./app
       dockerfile: Dockerfile
+    command: ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "main:app", "--bind", "0.0.0.0", "--workers", "4", "--timeout", "1200"]
 
 volumes:
   app:
