@@ -19,3 +19,7 @@ class APIExceptionResponse(BaseModel):
 
     def dict(self, *args, **kwargs) -> Dict[str, Any]:
         return super().model_dump(*args, exclude_none=True, **kwargs)
+
+
+class DeleteChatResponse(BaseModel):
+    msg: str

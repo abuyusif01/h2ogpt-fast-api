@@ -1,4 +1,4 @@
-from typing import Any, List, Optional
+from typing import List, Optional, Dict
 from fastapi import File, Query, UploadFile
 from gradio_client import Client
 from pydantic import BaseModel, Field
@@ -11,10 +11,10 @@ class BaseChatRequest(BaseModel):
 
 
 class ConverseWithDocsRequest(BaseChatRequest):
-    dois: Optional[List[str]] = Field(default=[])
-    pipelines: Optional[List[str]] = Field(default=[])
-    urls: Optional[List[str]] = Field(default=[])
-    h2ogpt_path: Optional[List[str]] = Field(default=[])
+    dois: List[str] = Field(default=[])
+    pipelines: List[str] = Field(default=[])
+    urls: List[str] = Field(default=[])
+    h2ogpt_path: List[str] = Field(default=[])
     langchain_action: Optional[str] = Field(default="Query")
     top_k_docs: Optional[int] = Field(default=5)
 
@@ -34,7 +34,7 @@ class ChatRequest(BaseModel):
 
 class ChatResponse(BaseModel):
     chat: ChatModel
-    msg: dict
+    msg: Dict
 
 
 class PaginateRequest(BaseModel):

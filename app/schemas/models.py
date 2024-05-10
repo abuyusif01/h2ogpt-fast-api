@@ -32,7 +32,8 @@ class ChatModel(BaseH2ogptModel):
     res: list[dict[str, Any]] = Field(default_factory=list)
     chat_history: list = Field(default_factory=list)
 
-    def __pydantic_post_init__(self):
+    # TODO: https://stackoverflow.com/questions/66571079/alter-field-after-instantiation-in-pydantic-basemodel-class
+    def __pydantic_post_init__(self):  # type: ignore
         super().__init__()
         if self.metadata == {}:  # new chat object
             self.metadata = {
