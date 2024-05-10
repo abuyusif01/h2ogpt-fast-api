@@ -46,7 +46,6 @@ def get_chat(chatId: str):
     Get chat by chatId
     """
     try:
-        # time.sleep(20)
         result = ChatPipeline().get_chat(chatId)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e.__repr__())

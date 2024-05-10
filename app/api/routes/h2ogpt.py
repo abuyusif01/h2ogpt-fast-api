@@ -17,7 +17,7 @@ router = APIRouter()
 
 
 @router.post("/converse")
-def converse(
+async def converse(
     req: BaseChatRequest = Depends(),
     client: Client = Depends(h2ogpt_client),
 ):
@@ -26,7 +26,7 @@ def converse(
     """
 
     try:
-        result = H2ogptConverse(
+        result = await H2ogptConverse(
             H2ogptRequest(client=client, req=req),
         ).converse(req)
     except Exception as e:
@@ -42,7 +42,7 @@ def converse(
     "/converseWithDocs",
     response_model=ConverseResponse | APIExceptionResponse,
 )
-def converse_with_docs(
+async def converse_with_docs(
     req: ConverseWithDocsRequest = Depends(),
     client: Client = Depends(h2ogpt_client),
 ):
@@ -51,7 +51,7 @@ def converse_with_docs(
     """
 
     try:
-        result = H2ogptConverseWithDocs(
+        result = await H2ogptConverseWithDocs(
             H2ogptRequest(client=client, req=req)
         ).converse_with_docs(req)
     except Exception as e:
