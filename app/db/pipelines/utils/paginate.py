@@ -1,13 +1,16 @@
+from typing import Optional
+
+
 class Pagination:
     def __init__(self) -> None: ...
 
-    def paginate(self, query: list, skip: int = 0, limit: int = 10):
+    def paginate(self, query: list, skip: Optional[int] = 0, limit: Optional[int] = 10):
         """paginate cursor
 
         Args:
             query (list): query to be paginated
             skip (int): skip how many pages
-            limit (int): limit 
+            limit (int): limit
 
         Returns:
             list: paginated cursor

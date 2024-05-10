@@ -7,14 +7,14 @@ from schemas.request import (
     PaginateRequest,
 )
 from schemas.models import ChatModel, AllChatsModel
-from schemas.response import APIExceptionResponse
+from schemas.response import DeleteChatResponse
 from core.utils.exceptions import ExceptionHandler, exhandler
 from core.config import settings
 from datetime import datetime
+from typing import Any
 
 
 class ChatPipeline(BasePipeline):
-
     def __init__(
         self,
         **kwargs,
@@ -25,11 +25,11 @@ class ChatPipeline(BasePipeline):
         self.chatId = kwargs.get("chatId", None)
 
     @property
-    async def run(self):
-        return await self.get_chat(self.chatId)
+    def run(self):
+        return self.get_chat(self.chatId)
 
     @exhandler
-    def get_chat(self, chatId: str) -> ChatModel | APIExceptionResponse:
+    def get_chat(self, chatId: str) -> ChatModel | Any:
         """Get chat Object given chatId and userId.
 
         Args:
@@ -72,7 +72,6 @@ class ChatPipeline(BasePipeline):
         req.chat.metadata["dateCreated"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         req.chat.metadata["lastUpdated"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        # UserId is added to metadata
         self.cursor[self.db].insert_one(req.chat.model_dump())
 
         return ChatResponse(
@@ -108,7 +107,7 @@ class ChatPipeline(BasePipeline):
     @exhandler
     def get_all_chats_metadata(
         self, paginate: PaginateRequest
-    ) -> list[AllChatsModel] | APIExceptionResponse:
+    ) -> list[AllChatsModel] | Any:
         """get all user-scope chats metadata
 
         Returns:
@@ -131,18 +130,18 @@ class ChatPipeline(BasePipeline):
                 AllChatsModel(**chat) for chat in self.cursor[self.db].aggregate(query)
             ]
         except Exception as e:
-            raise Exception(f"Failed to retrieve all chats metadata {repr(e)}")
+            raise Exception(f"Failed to retrieve chats metadata {repr(e)}")
 
     @exhandler
-    def delete_chat(self, req: DeleteChatRequest) -> dict | ExceptionHandler:
-        """delete chat given chatId and userId"""
+    def delete_chat(self, req: DeleteChatRequest) -> DeleteChatResponse | Any:
+        """delete chat given its id"""
 
         try:
             result = self.cursor[self.db].delete_one({"metadata.chatId": req.chatId})
 
             if result.deleted_count == 0:
                 raise Exception
-            return {"msg": "Chat deleted successfully"}
+            return DeleteChatResponse(msg="Chat deleted successfull")
         except Exception as e:
             return ExceptionHandler(
                 exception=e,

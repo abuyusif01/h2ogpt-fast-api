@@ -13,10 +13,10 @@ class ItemPipeline(BasePipeline):
 
     @property
     @exhandler
-    async def run(self) -> Any | APIExceptionResponse:
-        return await self.items()
+    def run(self) -> Any | APIExceptionResponse:
+        return self.items()
 
-    async def items(self) -> list[dict]:
+    def items(self) -> list[dict]:
         query = [
             {"$project": {"_id": 0}},
         ]
@@ -24,5 +24,5 @@ class ItemPipeline(BasePipeline):
 
         return result
 
-    async def insert_one(self, item: dict) -> dict:
+    def insert_one(self, item: dict) -> Any:
         return self.cursor[self.db].insert_one(item)

@@ -3,7 +3,6 @@ from db.pipelines.utils.cursor import Cursor
 
 
 class Test_H2ogptUtils:
-
     def test_paginate(self):
         query = []
         skip = 0
@@ -12,7 +11,7 @@ class Test_H2ogptUtils:
 
         assert isinstance(Pagination().paginate(query, skip, limit), list)
         assert Pagination().paginate(query, skip, limit) == expected_result
-        assert Pagination().paginate(query, skip, limit) != None
+        assert Pagination().paginate(query, skip, limit) is not None
 
     def test_cursor(self):
         import os
