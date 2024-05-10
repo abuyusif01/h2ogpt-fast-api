@@ -1,9 +1,12 @@
 from schemas.response import APIExceptionResponse
+from gradio_client import Client
 from core.utils.client import H2ogptAuth
 from core.utils.exceptions import ExceptionHandler, exhandler
+from core.utils.download_httpx import HttpxDownloader
 from core.config import settings
 from schemas.request import DocumentUploadRequest
-import os, hashlib
+import os
+import hashlib
 
 
 class H2ogptDocs(H2ogptAuth):
@@ -26,7 +29,7 @@ class H2ogptDocs(H2ogptAuth):
         self.files = []
 
     @exhandler
-    async def upload(self, req: DocumentUploadRequest):
+    def upload(self, req: DocumentUploadRequest, client: Client):
         """
         Uploads a document to H2ogpt user_path.
 
@@ -42,7 +45,6 @@ class H2ogptDocs(H2ogptAuth):
 
         """
         if req.file and self.res_dir:
-
             path: str = os.path.join(os.getcwd(), self.res_dir)
             id = hashlib.md5(req.file.filename.encode()).hexdigest()[:8]  # type: ignore
             req.file.filename = f"{id}_user_upload_{req.file.filename}"
@@ -56,7 +58,7 @@ class H2ogptDocs(H2ogptAuth):
                         f.write(chunk)
 
                 # refresh user_path
-                res = self.sources(refresh=True)
+                res = self.sources(refresh=True, client=client)
                 found = False
 
                 if isinstance(res, APIExceptionResponse):
@@ -76,16 +78,18 @@ class H2ogptDocs(H2ogptAuth):
                         "h2ogpt_path": self.h2ogpt_path,
                     }
                 else:
+                    # clean up our mess
+                    os.remove(f"{path}/{req.file.filename}")
                     raise ExceptionHandler(
-                        exception=None,
+                        exception=None,  # type: ignore
                         msg="Unsupported, Corrupted, or invalid file format.",
                         solution="Check and ensure the file format is valid",
                     )
-            except Exception as e:
+            except ExceptionHandler as e:
                 return APIExceptionResponse(**e.__repr__())
 
     @exhandler
-    async def get_docs(self) -> list | APIExceptionResponse:
+    def get_docs(self, client: Client) -> list | APIExceptionResponse:
         """
         Retrieves the list of uploaded documents from the H2ogpt (user-scoped).
 
@@ -94,4 +98,4 @@ class H2ogptDocs(H2ogptAuth):
 
         """
 
-        return self.sources(refresh=True)
+        return self.sources(refresh=True, client=client)

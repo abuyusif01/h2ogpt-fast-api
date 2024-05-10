@@ -1,6 +1,7 @@
-import os, ast, uuid, asyncio
 from time import perf_counter
+
 from db.pipelines.chat import ChatPipeline
+from fastapi.responses import StreamingResponse
 from schemas.models import ChatModel
 from schemas.request import (
     BaseChatRequest,
@@ -8,16 +9,19 @@ from schemas.request import (
     ConverseWithDocsRequest,
     H2ogptRequest,
 )
-from schemas.response import (
-    APIExceptionResponse,
-    ConverseResponse,
-)
+from schemas.response import APIExceptionResponse
+
 
 from core.utils.download_doi import DownloadDOI
 from core.utils.download_httpx import HttpxDownloader
 from core.utils.exceptions import ExceptionHandler, exhandler
 from core.utils.runner import PipelineNames, PipelineRunner
 from core.converse import H2ogptConverse
+from core.config import settings
+from typing import Any
+
+import os
+import uuid
 
 
 class H2ogptConverseWithDocs(H2ogptConverse):
@@ -58,12 +62,12 @@ class H2ogptConverseWithDocs(H2ogptConverse):
         self.client = req.client
 
     @exhandler
-    def build_dois(self, req: ConverseWithDocsRequest) -> str:
+    def build_dois(self, req: ConverseWithDocsRequest) -> list:
         dois = []
 
         for d in req.dois:
             try:
-                path = os.path.join(self.res_dir, f"{self._fname(d)}.pdf")
+                path = os.path.join(settings.RES_DIR, f"{self._fname(d)}.pdf")
                 from stat import S_ISREG
 
                 mode = os.stat(path).st_mode
@@ -77,7 +81,7 @@ class H2ogptConverseWithDocs(H2ogptConverse):
 
             except FileNotFoundError:
                 return DownloadDOI().download(
-                    dois=d,
+                    doi=d,
                     client=self,
                     h2ogpt_path=True,
                 )
@@ -86,7 +90,7 @@ class H2ogptConverseWithDocs(H2ogptConverse):
     @exhandler
     def build_pipelines(
         self, req: ConverseWithDocsRequest
-    ) -> dict | APIExceptionResponse:
+    ) -> list | APIExceptionResponse:
         result = []
 
         for p in req.pipelines:
@@ -110,14 +114,16 @@ class H2ogptConverseWithDocs(H2ogptConverse):
                     msg="Unsupported pipeline name",
                     solution="Check the pipeline names and try again.",
                 )
+        return result
 
     @exhandler
-    def build_urls(self, req: ConverseWithDocsRequest) -> dict:
+    def build_urls(self, req: ConverseWithDocsRequest) -> list:
         urls = []
 
+        # TODO: validator for all converse.* members
         for u in req.urls:
             try:
-                path = os.path.join(self.res_dir, f"{self._fname(u)}.pdf")
+                path = os.path.join(settings.RES_DIR, f"{self._fname(u)}.pdf")
                 from stat import S_ISREG
 
                 mode = os.stat(path).st_mode
@@ -130,19 +136,21 @@ class H2ogptConverseWithDocs(H2ogptConverse):
                 urls.append(
                     HttpxDownloader().download_simple(
                         url=u,
-                        dest=os.path.join(self.res_dir, u),
+                        dest=os.path.join(settings.RES_DIR, u),
                     )
                 )
 
         self.sources(refresh=True)
         return urls
 
+    # TODO: this should be same as production, infact this need to be rewritten
     @exhandler
-    def load_context(self, req: ConverseWithDocsRequest, document_choice: list[str]):
-
+    async def load_context(
+        self, req: ConverseWithDocsRequest, document_choice: list[str]
+    ):
         # If there's no chat res and no document choice, start a new conversation
         if not self.chat.res and len(document_choice) == 0:
-            return self.converse(
+            return await self.converse(
                 BaseChatRequest(
                     chatId=req.chatId,
                     instruction=req.instruction,
@@ -160,9 +168,9 @@ class H2ogptConverseWithDocs(H2ogptConverse):
         return f"{s.replace('/', '_')}"
 
     @exhandler
-    def instruction_send(
+    async def instruction_send(
         self, req: ConverseWithDocsRequest, document_choice: list[str]
-    ) -> ConverseResponse | APIExceptionResponse:
+    ) -> StreamingResponse | APIExceptionResponse:
         """
         Send instruction with document_choice to the model and return the response.
         """
@@ -181,11 +189,11 @@ class H2ogptConverseWithDocs(H2ogptConverse):
             refresh=True,
         )
 
-        instruction = self.load_context(req, document_choice)
+        instruction = await self.load_context(req, document_choice)
 
         # if the theres no context and no file given
         # then we will just send the instruction and get the result
-        if isinstance(instruction, ConverseResponse):
+        if isinstance(instruction, StreamingResponse):
             return instruction
 
         if isinstance(instruction, APIExceptionResponse):
@@ -211,37 +219,40 @@ class H2ogptConverseWithDocs(H2ogptConverse):
         )
 
         self.start = perf_counter()
-        res = self.client.predict(
+        job = self.client.submit(
             kwargs,
             api_name="/submit_nochat_api",
         )
+
         self.end = perf_counter()
 
-        response = ast.literal_eval(res)["response"]
-        sources = ast.literal_eval(res)["sources"]
+        async def generate():
+            response = ""
+            async for r in self.stream(job):
+                yield r
+                response += r
+                print(r)
 
-        self.chat_conversation.append((instruction, response))
-        db_chat_history = self.chat.db_chat_conversation(
-            chat_conversation=self.chat_conversation, refresh=True
-        )
-        self.chat.chat_history = db_chat_history
-
-        self.update_chat(
-            ChatRequest(
-                chat=self.chat,
-                chatId=req.chatId,
+            self.chat_conversation.append((req.instruction, response))
+            self.chat.db_chat_conversation(
+                chat_conversation=self.chat_conversation, refresh=True
             )
-        )
 
-        return ConverseResponse(
-            response=response,
-            chatId=self.chat.metadata["chatId"],
-            time_taken=self.end - self.start,
-            sources=sources,
+            self.update_chat(
+                ChatRequest(
+                    chat=self.chat,
+                    chatId=req.chatId,
+                )
+            )
+
+        return StreamingResponse(
+            generate(),
+            media_type="text/event-stream",
+            headers={"x-gennet-chatid": req.chatId},
         )
 
     @exhandler
-    def converse_with_docs(self, req: ConverseWithDocsRequest) -> dict:
+    async def converse_with_docs(self, req: ConverseWithDocsRequest) -> Any:
         document_choice = []
 
         if req.dois:
@@ -256,4 +267,4 @@ class H2ogptConverseWithDocs(H2ogptConverse):
         if req.h2ogpt_path:
             document_choice.append(*req.h2ogpt_path)
 
-        return self.instruction_send(req, document_choice)
+        return await self.instruction_send(req, document_choice)

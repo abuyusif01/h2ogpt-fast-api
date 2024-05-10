@@ -1,5 +1,10 @@
-import os, uuid, httpx, contextlib, threading, shutil
-from core.utils.exceptions import exhandler
+import os
+import uuid
+import httpx
+import contextlib
+import threading
+import shutil
+from core.utils.exceptions import ExceptionHandler, exhandler
 from core.config import settings
 
 
@@ -42,7 +47,7 @@ class HttpxDownloader:
                 else:
                     with contextlib.suppress(FileNotFoundError):
                         os.remove(path)
-        except:
+        except Exception:
             raise Exception("Failed to remove path")
 
     def atomic_move_simple(self, src, dst):
@@ -59,15 +64,16 @@ class HttpxDownloader:
     def download_simple(self, url, dest=None, overwrite=False):
         if dest is None:
             dest = os.path.basename(url)
-        dest = self.makedirs(dest, exist_ok=True, tmp_ok=True)
+        dest = self.makedirs(dest, exist_ok=True)
 
         if not overwrite and os.path.isfile(dest):
             raise FileExistsError(f"File {dest} already exists")
 
         with self.session.stream("GET", url) as response:
             if response.status_code != 200:
-                raise httpx.HTTPStatusError(
-                    f"Error {response.status_code}: {response.reason_phrase}"
+                raise ExceptionHandler(
+                    exception=None,  # type: ignore
+                    msg=f"Error {response.status_code}: {response.reason_phrase}",
                 )
 
             uuid_tmp = str(uuid.uuid4())[:6]

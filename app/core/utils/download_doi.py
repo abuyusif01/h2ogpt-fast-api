@@ -4,9 +4,10 @@ from core.utils.client import H2ogptAuth
 from gradio_client import Client
 from scidownl import scihub_download
 from core.config import settings
+from typing import Any
 
 
-class DownloadDOI:
+class DownloadDOI(H2ogptAuth):
     """
     Class for downloading articles based on their DOIs.
     """
@@ -19,7 +20,7 @@ class DownloadDOI:
         doi: str,
         client: H2ogptAuth | Client | APIExceptionResponse,
         h2ogpt_path: bool = False,
-    ) -> str:
+    ) -> Any:
         """
         Downloads a file based on the given DOI.
 
@@ -39,7 +40,7 @@ class DownloadDOI:
             scihub_download(keyword=doi, out=file_path)  # default is doi
 
         if h2ogpt_path:
-            h2ogpt_paths = client.sources(refresh=True)
+            h2ogpt_paths = self.sources(client=client, refresh=True)
             for p in h2ogpt_paths:
                 if self._fname(doi) in p:
                     return p

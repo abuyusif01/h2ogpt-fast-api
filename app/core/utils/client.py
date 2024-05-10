@@ -2,8 +2,12 @@ from typing import Any
 from schemas.response import APIExceptionResponse
 from core.utils.exceptions import ExceptionHandler, exhandler
 from gradio_client import Client
-import ast, yaml, uuid
+from gradio_client.client import Job
 from core.config import settings
+import asyncio
+import ast
+import yaml
+import uuid
 
 
 class H2ogptAuth:
@@ -26,8 +30,8 @@ class H2ogptAuth:
     langchain_mode = settings.H2OGPT_LANGCHAIN_MODE
     chunk_size = settings.H2OGPT_CHUNK_SIZE
 
-    @exhandler  # TODO: Create exhandler for only internal stuff
-    def auth_client(self) -> Client:
+    @exhandler
+    def auth_client(self) -> Client | ExceptionHandler:
         """
         Get an instance of authenticated client
         """
@@ -63,7 +67,7 @@ class H2ogptAuth:
         self.loaders = kwargs.get("loaders") if kwargs.get("loaders") else self.loaders
         self.client: Client = (
             kwargs.get("client") if kwargs.get("client") else self.auth_client()
-        )
+        )  # type: ignore
 
         if isinstance(self.client, APIExceptionResponse):
             return self.client
@@ -94,7 +98,7 @@ class H2ogptAuth:
         self.loaders = kwargs.get("loaders") if kwargs.get("loaders") else self.loaders
         self.client = (
             kwargs.get("client") if kwargs.get("client") else self.auth_client()
-        )
+        )  # type: ignore
 
         # this is partial fix, we add uuid. till gradio support on the fly hash checking
         # need to create issue, when passing list converted to str, server treats it as list
@@ -111,11 +115,39 @@ class H2ogptAuth:
         )
         return f"user_paste/{res[4]}"  # constant index for user_paste/<ID>
 
+    #    @exhandler
+    # def delete_source(self, source: str, **kwargs):
+    #
+    @exhandler
+    async def stream(self, job: Job):
+        text_old = ""
+
+        while not job.done():
+            outputs_list = job.communicator.job.outputs  # type: ignore
+            if outputs_list:
+                res = job.communicator.job.outputs[-1]  # type: ignore
+                res_dict = ast.literal_eval(res)
+                text = res_dict["response"]
+                new_text = text[len(text_old) :]
+                if new_text:
+                    yield new_text
+                    text_old = text
+                await asyncio.sleep(0.5)
+
+        # handle case if never got streaming response and already done
+        res_final = job.outputs()
+        if len(res_final) > 0:
+            res = res_final[-1]
+            res_dict = ast.literal_eval(res)  # type: ignore
+            text = res_dict["response"]
+            new_text = text[len(text_old) :]
+            yield new_text
+
 
 h2ogpt_instance = H2ogptAuth()
 
 
-def h2ogpt_client() -> Client:
+def h2ogpt_client() -> Client | ExceptionHandler:
     client = h2ogpt_instance.auth_client()
     if isinstance(client, APIExceptionResponse):
         raise ExceptionHandler(

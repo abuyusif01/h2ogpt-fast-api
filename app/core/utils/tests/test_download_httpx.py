@@ -4,7 +4,6 @@ from core.utils.download_httpx import HttpxDownloader
 
 
 class Test_HttpxDownloader:
-
     def test_makedirs(self):
         path = HttpxDownloader().makedirs(path="/tmp/pytest-makedirs")
         assert path is not None, "Path cant be None"

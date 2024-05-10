@@ -1,5 +1,5 @@
 from functools import wraps
-import inspect, os
+import inspect
 from typing import Any, Optional
 from core.config import settings
 
@@ -17,9 +17,13 @@ class ExceptionHandler(Exception):
         solution (Optional[Any]): Suggested solution for the exception.
     """
 
+    msg: Optional[str]
+    solution: Optional[str]
+    excption: Exception
+
     def __init__(
         self,
-        exception: Exception,
+        exception: Exception | Any,
         msg: Optional[Any] = None,
         solution: Optional[Any] = None,
     ) -> None:
@@ -29,7 +33,7 @@ class ExceptionHandler(Exception):
         self.func_name = inspect.stack()[2].function
         self.solution = solution
 
-    def __repr__(self) -> dict:
+    def __repr__(self) -> dict:  # type: ignore
         verbose: int = settings.VERBOSE
         exception_name = self.exception.__class__.__name__
         cause = self.msg if verbose != 3 else self.get_cause_details()
@@ -49,7 +53,7 @@ class ExceptionHandler(Exception):
         else:
             return {"msg": self.msg}
 
-    def get_cause_details(self) -> str:
+    def get_cause_details(self) -> str | None:
         frames = inspect.stack()
         for frame_info in frames:
             frame = frame_info.frame
